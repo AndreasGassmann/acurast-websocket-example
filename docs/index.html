@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Acurast WebSocket Client</title>
     <link
       rel="stylesheet"
@@ -69,10 +69,17 @@
       .config-list ul {
         margin: 0;
         padding-left: 20px;
+        list-style: none;
       }
       .config-list button {
         width: 100%;
         margin-top: 10px;
+      }
+      .recipient-checkbox {
+        margin-right: 8px;
+      }
+      .select-all-container {
+        margin-bottom: 8px;
       }
       dialog {
         width: 100%;
@@ -173,13 +180,12 @@
   <body>
     <main class="container">
       <h1>Acurast WebSocket Client</h1>
-
       <div class="grid">
         <div>
           <article class="sticky">
             <h2>Request Payload</h2>
-            <label for="request-payload">
-              JSON Request
+            <label for="request-payload"
+              >JSON Request
               <textarea id="request-payload" rows="8">
 {
   "jsonrpc": "2.0",
@@ -188,26 +194,23 @@
 }</textarea
               >
             </label>
-
             <div class="button-group">
               <button id="send-ping-btn">Send Ping</button>
               <button id="send-node-check-btn">Send Node Check</button>
               <button id="connect-btn">Send Custom Request</button>
             </div>
-
             <div class="api-key-container">
-              <label for="api-key">
-                API Key
+              <label for="api-key"
+                >API Key
                 <div class="input-with-status">
                   <input
-                    type="text"
                     id="api-key"
                     name="api-key"
                     placeholder="Enter your API key"
                   />
                   <span id="api-key-status" class="status-icon">✓</span>
-                </div>
-              </label>
+                </div></label
+              >
               <div id="api-key-set" class="api-key-set" style="display: none">
                 <div class="api-key-placeholder">API Key is set</div>
                 <button id="delete-api-key" class="delete-api-key">
@@ -215,13 +218,22 @@
                 </button>
               </div>
             </div>
-
             <div class="config-list">
               <h3>Recipients</h3>
+              <div class="select-all-container">
+                <label
+                  ><input
+                    type="checkbox"
+                    id="select-all-recipients"
+                    class="recipient-checkbox"
+                    checked="checked"
+                  />
+                  Select/Deselect All</label
+                >
+              </div>
               <ul id="recipients-list"></ul>
               <button id="set-recipients-btn">Set Recipients</button>
             </div>
-
             <div class="config-list">
               <h3>WebSocket URLs</h3>
               <ul id="websocket-urls-list"></ul>
@@ -229,7 +241,6 @@
             </div>
           </article>
         </div>
-
         <div>
           <article>
             <h2>Results</h2>
@@ -249,13 +260,11 @@
         </div>
       </div>
     </main>
-
-    <!-- WebSocket URLs Modal -->
     <dialog id="urls-modal">
       <article>
         <h3>Set WebSocket URLs</h3>
-        <label for="urls-input">
-          URLs Configuration (JSON array)
+        <label for="urls-input"
+          >URLs Configuration (JSON array)
           <textarea id="urls-input" rows="6"></textarea>
         </label>
         <footer>
@@ -269,13 +278,11 @@
         </footer>
       </article>
     </dialog>
-
-    <!-- Recipients Modal -->
     <dialog id="recipients-modal">
       <article>
         <h3>Set Recipients</h3>
-        <label for="recipients-input">
-          Recipients Configuration (JSON array)
+        <label for="recipients-input"
+          >Recipients Configuration (JSON array)
           <textarea id="recipients-input" rows="6"></textarea>
         </label>
         <footer>
@@ -289,7 +296,22 @@
         </footer>
       </article>
     </dialog>
-
-    <script src="./bundle.js"></script>
+    <script
+      defer="defer"
+      src="vendors-cdd60c62.a6fe6ffda42a6aa8968d.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-d5c1e108.bf111911b096fcea5251.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-2b4841d6.33b92e5a84537f9c1c7e.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-f82e0cd2.35b1c840986b62f4da24.js"
+    ></script>
+    <script defer="defer" src="main.05a58b87bf6f7b9091a4.js"></script>
   </body>
 </html>

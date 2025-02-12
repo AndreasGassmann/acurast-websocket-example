@@ -1,0 +1,31 @@
+{
+  "name": "acurast-websocket-example",
+  "version": "1.0.0",
+  "description": "Example of using Acurast WebSocket client",
+  "main": "dist/bundle.js",
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack serve --open",
+    "deploy": "gh-pages -d ."
+  },
+  "author": "Andreas Gassmann <andreas@acurast.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@acurast/dapp": "^1.0.1",
+    "buffer": "^6.0.3",
+    "process": "^0.11.10"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "crypto-browserify": "^3.12.0",
+    "gh-pages": "^6.1.1",
+    "stream-browserify": "^3.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "util": "^0.12.5",
+    "vm-browserify": "^1.1.2",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.2"
+  }
+}

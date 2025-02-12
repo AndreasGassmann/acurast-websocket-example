@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acurast WebSocket Client</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0 20px;
+      }
+      .result-box {
+        background: #f8f9fa;
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        color: #000;
+        line-height: 1.2;
+      }
+      .result-box h4 {
+        margin: 0;
+        padding: 0;
+        color: #000;
+        font-weight: 600;
+        font-size: 1em;
+        line-height: 1.2;
+        display: inline-block;
+      }
+      .result-box .content {
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.2;
+        margin: 0;
+        padding: 0;
+      }
+      .result-box.pending {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+      }
+      .result-box.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+      }
+      .result-box.success {
+        background: #d1e7dd;
+        border: 1px solid #badbcc;
+      }
+      .sticky {
+        position: sticky;
+        top: 20px;
+      }
+      .config-list {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+      }
+      .config-list ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .config-list button {
+        width: 100%;
+        margin-top: 10px;
+      }
+      dialog {
+        width: 100%;
+        max-width: 40rem;
+      }
+      dialog article {
+        margin: 0;
+        padding: 0;
+      }
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .button-group button {
+        flex: 1;
+      }
+      .button-group button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .api-key-container {
+        margin-bottom: 20px;
+      }
+      .input-with-status {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .status-icon {
+        position: absolute;
+        right: 10px;
+        color: #198754;
+        font-size: 1.2em;
+        display: none;
+      }
+      .status-icon.visible {
+        display: block;
+      }
+      .ping-results {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      .ping-results th,
+      .ping-results td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      .ping-results th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+      }
+      .ping-results tr.timeout td {
+        color: #dc3545;
+        background-color: #f8d7da;
+      }
+      .node-check-result {
+        margin-bottom: 20px;
+      }
+      .node-check-result table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .node-check-result td {
+        padding: 4px 8px;
+        border-bottom: 1px solid #ddd;
+      }
+      .node-check-result tr:first-child td {
+        background: #f8f9fa;
+        font-weight: 600;
+      }
+      .node-check-result tr td:first-child {
+        width: 40px;
+      }
+      .api-key-set {
+        text-align: center;
+      }
+      .api-key-placeholder {
+        background: #e9ecef;
+        padding: 8px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        color: #495057;
+      }
+      .delete-api-key {
+        width: 100%;
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+      }
+      .delete-api-key:hover {
+        background-color: #bb2d3b !important;
+        border-color: #b02a37 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Acurast WebSocket Client</h1>
+
+      <div class="grid">
+        <div>
+          <article class="sticky">
+            <h2>Request Payload</h2>
+            <label for="request-payload">
+              JSON Request
+              <textarea id="request-payload" rows="8">
+{
+  "jsonrpc": "2.0",
+  "method": "ping",
+  "params": {}
+}</textarea
+              >
+            </label>
+
+            <div class="button-group">
+              <button id="send-ping-btn">Send Ping</button>
+              <button id="send-node-check-btn">Send Node Check</button>
+              <button id="connect-btn">Send Custom Request</button>
+            </div>
+
+            <div class="api-key-container">
+              <label for="api-key">
+                API Key
+                <div class="input-with-status">
+                  <input
+                    type="text"
+                    id="api-key"
+                    name="api-key"
+                    placeholder="Enter your API key"
+                  />
+                  <span id="api-key-status" class="status-icon">✓</span>
+                </div>
+              </label>
+              <div id="api-key-set" class="api-key-set" style="display: none">
+                <div class="api-key-placeholder">API Key is set</div>
+                <button id="delete-api-key" class="delete-api-key">
+                  Delete API Key
+                </button>
+              </div>
+            </div>
+
+            <div class="config-list">
+              <h3>Recipients</h3>
+              <ul id="recipients-list"></ul>
+              <button id="set-recipients-btn">Set Recipients</button>
+            </div>
+
+            <div class="config-list">
+              <h3>WebSocket URLs</h3>
+              <ul id="websocket-urls-list"></ul>
+              <button id="set-urls-btn">Set WebSocket URLs</button>
+            </div>
+          </article>
+        </div>
+
+        <div>
+          <article>
+            <h2>Results</h2>
+            <div id="results-container"></div>
+            <table id="ping-results" class="ping-results" style="display: none">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Time</th>
+                  <th>Version</th>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <!-- WebSocket URLs Modal -->
+    <dialog id="urls-modal">
+      <article>
+        <h3>Set WebSocket URLs</h3>
+        <label for="urls-input">
+          URLs Configuration (JSON array)
+          <textarea id="urls-input" rows="6"></textarea>
+        </label>
+        <footer>
+          <button
+            id="urls-cancel"
+            onclick="document.getElementById('urls-modal').close()"
+          >
+            Cancel
+          </button>
+          <button id="urls-save">Save</button>
+        </footer>
+      </article>
+    </dialog>
+
+    <!-- Recipients Modal -->
+    <dialog id="recipients-modal">
+      <article>
+        <h3>Set Recipients</h3>
+        <label for="recipients-input">
+          Recipients Configuration (JSON array)
+          <textarea id="recipients-input" rows="6"></textarea>
+        </label>
+        <footer>
+          <button
+            id="recipients-cancel"
+            onclick="document.getElementById('recipients-modal').close()"
+          >
+            Cancel
+          </button>
+          <button id="recipients-save">Save</button>
+        </footer>
+      </article>
+    </dialog>
+
+    <script src="./bundle.js"></script>
+  </body>
+</html>

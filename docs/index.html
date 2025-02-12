@@ -175,9 +175,41 @@
         background-color: #bb2d3b !important;
         border-color: #b02a37 !important;
       }
+      .loading-indicator {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 7px;
+        background: #e9ecef;
+        display: none;
+        z-index: 9999;
+      }
+      .loading-indicator::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 20%;
+        background: rgb(192 231 0);
+        animation: loading 1s infinite ease-in-out;
+      }
+      @keyframes loading {
+        0% {
+          left: -20%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+      .loading-indicator.active {
+        display: block;
+      }
     </style>
   </head>
   <body>
+    <div class="loading-indicator"></div>
     <main class="container">
       <h1>Acurast WebSocket Client</h1>
       <div class="grid">
@@ -313,5 +345,22 @@
       src="vendors-f82e0cd2.35b1c840986b62f4da24.js"
     ></script>
     <script defer="defer" src="main.05a58b87bf6f7b9091a4.js"></script>
+    <script
+      defer="defer"
+      src="vendors-cdd60c62.a6fe6ffda42a6aa8968d.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-d5c1e108.bf111911b096fcea5251.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-2b4841d6.33b92e5a84537f9c1c7e.js"
+    ></script>
+    <script
+      defer="defer"
+      src="vendors-f82e0cd2.35b1c840986b62f4da24.js"
+    ></script>
+    <script defer="defer" src="main.d17fb7741dd622b91482.js"></script>
   </body>
 </html>

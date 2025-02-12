@@ -431,6 +431,17 @@ function logMessage(direction: "outgoing" | "incoming", message: any) {
   );
 }
 
+// Add loading indicator functions
+function showLoading() {
+  const indicator = document.querySelector(".loading-indicator");
+  indicator?.classList.add("active");
+}
+
+function hideLoading() {
+  const indicator = document.querySelector(".loading-indicator");
+  indicator?.classList.remove("active");
+}
+
 // Update handlePingRequest function
 async function handlePingRequest() {
   const apiKey = localStorage.getItem(API_KEY);
@@ -441,6 +452,8 @@ async function handlePingRequest() {
     alert("Please select at least one recipient");
     return;
   }
+
+  showLoading();
 
   const resultsContainer = document.getElementById("results-container")!;
   const pingResultsTable = document.getElementById("ping-results")!;
@@ -544,6 +557,7 @@ async function handlePingRequest() {
         }
       }
       updatePingResults(results);
+      hideLoading();
     }, 10000);
   } catch (error) {
     console.error("Error during ping:", error);
@@ -552,6 +566,7 @@ async function handlePingRequest() {
     resultsContainer.innerHTML = `<div class="result-box error"><div class="content">Error: ${
       error instanceof Error ? error.message : String(error)
     }</div></div>`;
+    hideLoading();
   }
 }
 
@@ -632,6 +647,8 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
       return;
     }
 
+    showLoading();
+
     const resultsContainer = document.getElementById("results-container")!;
     const pingResultsTable = document.getElementById("ping-results")!;
 
@@ -675,6 +692,7 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
             }
           }
         }
+        hideLoading();
       }, 10000);
 
       timeouts.set(recipient.pubkey, timeoutId);
@@ -718,6 +736,11 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
           pre.style.marginTop = "20px";
           pre.textContent = JSON.stringify(json, null, 2);
           resultBox.appendChild(pre);
+
+          // If all recipients have responded, hide loading
+          if (responseReceived.size === recipients.length) {
+            hideLoading();
+          }
         }
       } catch (e) {
         console.error("Failed to parse message:", e);
@@ -757,6 +780,7 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
         resultBox.textContent = `Error: ${
           error instanceof Error ? error.message : String(error)
         }`;
+        hideLoading();
       }
     }
 
@@ -765,6 +789,7 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
       for (const timeoutId of timeouts.values()) {
         clearTimeout(timeoutId);
       }
+      hideLoading();
     });
   } catch (error) {
     const recipients = getSelectedRecipients();
@@ -774,5 +799,6 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
         error instanceof Error ? error.message : String(error)
       }`;
     }
+    hideLoading();
   }
 });

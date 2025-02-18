@@ -5,8 +5,7 @@
   "main": "dist/bundle.js",
   "scripts": {
     "build": "webpack",
-    "start": "webpack serve --open",
-    "deploy": "gh-pages -d ."
+    "start": "npm run build && webpack serve --open"
   },
   "author": "Andreas Gassmann <andreas@acurast.com>",
   "license": "MIT",

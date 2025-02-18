@@ -223,6 +223,7 @@ function initApiKeyHandling() {
   const buttons = [
     document.getElementById("send-ping-btn"),
     document.getElementById("send-node-check-btn"),
+    document.getElementById("send-get-info-btn"),
     document.getElementById("connect-btn"),
   ];
 
@@ -802,3 +803,157 @@ document.getElementById("connect-btn")?.addEventListener("click", async () => {
     hideLoading();
   }
 });
+
+// Add this before the last closing brace of the file
+async function handleGetInfo() {
+  const apiKey = localStorage.getItem(API_KEY);
+  if (!apiKey) return;
+
+  showLoading();
+  try {
+    const selectedRecipients = getSelectedRecipients();
+    if (selectedRecipients.length === 0) {
+      alert("Please select at least one recipient");
+      return;
+    }
+
+    const resultsContainer = document.getElementById("results-container")!;
+    const pingResultsTable = document.getElementById("ping-results")!;
+
+    resultsContainer.style.display = "block";
+    pingResultsTable.style.display = "none";
+    resultsContainer.innerHTML = ""; // Clear previous results
+
+    client = await connect();
+
+    // Set up message handlers for each recipient
+    const messageHandlers = new Map<string, (content: string) => void>();
+    const timeouts = new Map<string, NodeJS.Timeout>();
+    const responseReceived = new Set<string>();
+
+    // Create result boxes and set up handlers
+    for (const recipient of selectedRecipients) {
+      const resultContent = createOrUpdateResultBox(recipient);
+      resultContent.textContent = "Connecting...\n";
+
+      messageHandlers.set(recipient.pubkey, (content: string) => {
+        resultContent.textContent += content + "\n";
+      });
+
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        if (!responseReceived.has(recipient.pubkey)) {
+          const box = document.getElementById(`result-${recipient.pubkey}`);
+          if (box) {
+            createOrUpdateResultBox(recipient, "error");
+            const content = box.querySelector(".content");
+            if (content) {
+              content.textContent =
+                "Timeout: No response received after 10 seconds\n";
+            }
+          }
+        }
+        hideLoading();
+      }, 10000);
+
+      timeouts.set(recipient.pubkey, timeoutId);
+    }
+
+    client.onMessage((message: { payload: Uint8Array }) => {
+      const payload = Buffer.from(message.payload).toString("utf8");
+      try {
+        const json = JSON.parse(payload) as ResponseMessage;
+        logMessage("incoming", json);
+        const recipient = selectedRecipients.find(
+          (r: Recipient) => r.pubkey === json.id
+        );
+        if (recipient) {
+          responseReceived.add(recipient.pubkey);
+          const timeoutId = timeouts.get(recipient.pubkey);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeouts.delete(recipient.pubkey);
+          }
+
+          const resultBox = createOrUpdateResultBox(
+            recipient,
+            json.error ? "error" : "success"
+          );
+          resultBox.innerHTML = "";
+
+          const pre = document.createElement("pre");
+          pre.style.marginTop = "20px";
+          pre.textContent = JSON.stringify(json, null, 2);
+          resultBox.appendChild(pre);
+
+          if (responseReceived.size === selectedRecipients.length) {
+            hideLoading();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse message:", e);
+      }
+    });
+
+    // Send requests
+    for (const recipient of selectedRecipients) {
+      const senderId = await getSenderId(recipient.pubkey);
+      const handler = messageHandlers.get(recipient.pubkey);
+      if (handler) {
+        handler(`Sending request (${senderId})...`);
+      }
+
+      const request = {
+        jsonrpc: "2.0",
+        method: "getXcbtcDeploymentInfo",
+        params: {},
+        id: recipient.pubkey,
+        apiKey,
+      };
+
+      logMessage("outgoing", { ...request, recipient: recipient.name });
+
+      try {
+        await client.send(
+          recipient.pubkey.substring(2),
+          Buffer.from(JSON.stringify(request)).toString("hex")
+        );
+      } catch (error) {
+        responseReceived.add(recipient.pubkey);
+        const timeoutId = timeouts.get(recipient.pubkey);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeouts.delete(recipient.pubkey);
+        }
+
+        const resultBox = createOrUpdateResultBox(recipient, "error");
+        resultBox.textContent = `Error: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+        hideLoading();
+      }
+    }
+
+    // Clean up timeouts when closing
+    window.addEventListener("beforeunload", () => {
+      for (const timeoutId of timeouts.values()) {
+        clearTimeout(timeoutId);
+      }
+      hideLoading();
+    });
+  } catch (error) {
+    const recipients = getSelectedRecipients();
+    for (const recipient of recipients) {
+      const resultBox = createOrUpdateResultBox(recipient, "error");
+      resultBox.textContent = `Error: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+    }
+    hideLoading();
+  }
+}
+
+// Update event listener for the get info button to use correct ID
+document
+  .getElementById("send-get-info-btn")
+  ?.addEventListener("click", handleGetInfo);

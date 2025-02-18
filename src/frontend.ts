@@ -301,36 +301,33 @@ interface PingResponse extends ResponseMessage {
   };
 }
 
-interface NodeResponse {
-  status: "fulfilled" | "rejected";
-  value?: {
-    url: string;
-  };
-  reason?: {
-    url: string;
-    reason: string;
-  };
-}
+type NodeResponse =
+  | {
+      status: "fulfilled";
+      value: {
+        url: string;
+      };
+    }
+  | {
+      status: "rejected";
+      reason: {
+        url: string;
+        reason: string;
+      };
+    };
 
 interface NodeCheckResponse extends ResponseMessage {
   result?: {
     data: {
-      responses: [
-        {
-          status: "fulfilled" | "rejected";
-          value?: {
-            responses: NodeResponse[];
-          };
-          reason?: string;
-        },
-        {
-          status: "fulfilled" | "rejected";
-          value?: {
-            responses: NodeResponse[];
-          };
-          reason?: string;
-        }
-      ];
+      responses: {
+        status: "fulfilled" | "rejected";
+        value: {
+          bitcoinNetwork: "mainnet" | "testnet";
+          targetNetwork: "mainnet" | "testnet";
+          currency: "bitcoin" | "tezos" | "etherlink" | "ethereum";
+          responses: NodeResponse[];
+        };
+      }[];
     };
   };
 }
@@ -371,47 +368,102 @@ function createNodeCheckTable(
 ): HTMLElement {
   const container = document.createElement("div");
   container.className = "node-check-result";
+  // Set container to full height with better styling
+  container.style.cssText = `
+    height: calc(100vh - 300px);
+    min-height: 400px;
+    overflow-y: auto;
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+  `;
 
   const table = document.createElement("table");
   table.className = "ping-results";
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+
+  // Helper function to escape HTML
+  const escapeHtml = (unsafe: string): string => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
 
   let content = `
     <tr>
-      <td colspan="2"><strong>${recipient.name} ${
-    recipient.isGateKeeper ? "🔐" : ""
-  }</strong></td>
+      <td colspan="3" style="padding: 10px 0;"><strong>${escapeHtml(
+        recipient.name
+      )} ${recipient.isGateKeeper ? "🔐" : ""}</strong></td>
     </tr>
   `;
 
-  if (response.result?.data.responses[0]) {
-    content += '<tr><td colspan="2"><strong>BTC</strong></td></tr>';
-    const btcResponses = response.result.data.responses[0];
-    if (btcResponses.status === "fulfilled" && btcResponses.value) {
-      btcResponses.value.responses.forEach((response) => {
-        if (response.status === "fulfilled" && response.value) {
-          content += `<tr><td style="padding-left: 20px">✅</td><td>${response.value.url}</td></tr>`;
-        } else if (response.status === "rejected" && response.reason) {
-          content += `<tr class="timeout"><td style="padding-left: 20px">❌</td><td>${response.reason.url}: ${response.reason.reason}</td></tr>`;
-        }
-      });
-    } else if (btcResponses.status === "rejected") {
-      content += `<tr class="timeout"><td colspan="2" style="padding-left: 20px">Error: ${btcResponses.reason}</td></tr>`;
-    }
-  }
+  if (response.result?.data.responses) {
+    // Group responses by currency
+    const responses = response.result.data.responses;
+    const currencyGroups = new Map<string, (typeof responses)[0][]>();
 
-  if (response.result?.data.responses[1]) {
-    content += '<tr><td colspan="2"><strong>XTZ</strong></td></tr>';
-    const xtzResponses = response.result.data.responses[1];
-    if (xtzResponses.status === "fulfilled" && xtzResponses.value) {
-      xtzResponses.value.responses.forEach((response) => {
-        if (response.status === "fulfilled" && response.value) {
-          content += `<tr><td style="padding-left: 20px">✅</td><td>${response.value.url}</td></tr>`;
-        } else if (response.status === "rejected" && response.reason) {
-          content += `<tr class="timeout"><td style="padding-left: 20px">❌</td><td>${response.reason.url}: ${response.reason.reason}</td></tr>`;
+    responses.forEach((response) => {
+      if (response.status === "fulfilled" && response.value) {
+        const currency = response.value.currency.toUpperCase();
+        if (!currencyGroups.has(currency)) {
+          currencyGroups.set(currency, []);
+        }
+        currencyGroups.get(currency)?.push(response);
+      }
+    });
+
+    // Display each currency group
+    for (const [currency, groupResponses] of currencyGroups) {
+      let groupContent = "";
+
+      groupResponses.forEach((currencyResponse) => {
+        if (currencyResponse.status === "fulfilled" && currencyResponse.value) {
+          const networkInfo = currencyResponse.value;
+
+          // Add currency header if not added yet
+          if (!groupContent) {
+            groupContent = `
+              <tr>
+                <td colspan="3" style="padding: 5px 0;">
+                  <strong>${escapeHtml(currency)}</strong> (${escapeHtml(
+              networkInfo.bitcoinNetwork || networkInfo.targetNetwork
+            )})
+                </td>
+              </tr>
+            `;
+          }
+
+          // Show all nodes with their status
+          networkInfo.responses.forEach((response) => {
+            if (response.status === "fulfilled" && response.value) {
+              groupContent += `
+                <tr>
+                  <td style="padding-left: 40px;">✅</td>
+                  <td>${escapeHtml(response.value.url)}</td>
+                  <td>Operational</td>
+                </tr>
+              `;
+            } else if (response.status === "rejected" && response.reason) {
+              groupContent += `
+                <tr class="timeout">
+                  <td style="padding-left: 40px;">❌</td>
+                  <td>${escapeHtml(response.reason.url)}</td>
+                  <td>${escapeHtml(response.reason.reason)}</td>
+                </tr>
+              `;
+            }
+          });
         }
       });
-    } else if (xtzResponses.status === "rejected") {
-      content += `<tr class="timeout"><td colspan="2" style="padding-left: 20px">Error: ${xtzResponses.reason}</td></tr>`;
+
+      // Always add the currency group
+      content += groupContent;
     }
   }
 

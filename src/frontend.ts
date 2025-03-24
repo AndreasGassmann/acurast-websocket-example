@@ -876,12 +876,23 @@ async function handleGetInfo() {
     pingResultsTable.style.display = "none";
     resultsContainer.innerHTML = ""; // Clear previous results
 
+    // Add download button container at the top
+    const downloadContainer = document.createElement("div");
+    downloadContainer.style.cssText = "margin-bottom: 20px; text-align: right;";
+    downloadContainer.innerHTML = `
+      <button id="download-responses" class="button" style="display: none;">
+        Download All Responses
+      </button>
+    `;
+    resultsContainer.appendChild(downloadContainer);
+
     client = await connect();
 
     // Set up message handlers for each recipient
     const messageHandlers = new Map<string, (content: string) => void>();
     const timeouts = new Map<string, NodeJS.Timeout>();
     const responseReceived = new Set<string>();
+    const responses = new Map<string, any>(); // Store responses for download
 
     // Create result boxes and set up handlers
     for (const recipient of selectedRecipients) {
@@ -938,6 +949,23 @@ async function handleGetInfo() {
           pre.textContent = JSON.stringify(json, null, 2);
           resultBox.appendChild(pre);
 
+          // Store response for download
+          responses.set(recipient.pubkey, {
+            recipient: {
+              name: recipient.name,
+              pubkey: recipient.pubkey,
+              processorAddress: recipient.processorAddress,
+              isGateKeeper: recipient.isGateKeeper,
+            },
+            response: json,
+          });
+
+          // Show download button when we have at least one response
+          const downloadBtn = document.getElementById("download-responses");
+          if (downloadBtn) {
+            downloadBtn.style.display = "inline-block";
+          }
+
           if (responseReceived.size === selectedRecipients.length) {
             hideLoading();
           }
@@ -985,6 +1013,24 @@ async function handleGetInfo() {
         hideLoading();
       }
     }
+
+    // Add download functionality
+    document
+      .getElementById("download-responses")
+      ?.addEventListener("click", () => {
+        const responsesArray = Array.from(responses.values());
+        const blob = new Blob([JSON.stringify(responsesArray, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `responses-${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
 
     // Clean up timeouts when closing
     window.addEventListener("beforeunload", () => {
